@@ -139,9 +139,15 @@ int main(int argc, char *argv[])
                 tcp_ = (struct packet_tcp*)packet;
 
 
-
                 printf("dport : %d\n",ntohs(tcp_->dst_port));
                 printf("sport : %d\n",ntohs(tcp_->src_port));
+
+                packet += sizeof(struct packet_tcp);
+
+
+                for(int i=0; i<50;i++)
+                    printf("%02x ", packet[i]);
+                printf("\n");
 
             }
 
