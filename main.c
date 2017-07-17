@@ -13,15 +13,15 @@ struct packet_eth
 };
 
 struct packet_tcp{
-  uint16_t src_port;
-  uint16_t dst_port;
-  uint32_t seq;
-  uint32_t ack;
-  uint8_t  data_offset;  // 4 bits
-  uint8_t  flags;
-  uint16_t window_size;
-  uint16_t checksum;
-  uint16_t urgent_p;
+    uint16_t src_port;
+    uint16_t dst_port;
+    uint32_t seq;
+    uint32_t ack;
+    uint8_t  data_offset;  // 4 bits
+    uint8_t  flags;
+    uint16_t window_size;
+    uint16_t checksum;
+    uint16_t urgent_p;
 };
 
 
@@ -105,18 +105,18 @@ int main(int argc, char *argv[])
         int res;
         int data_len;
         res = pcap_next_ex(handle, &header,&packet);
+        // data_len = header.len - (sizeof(struct packet_tcp) + sizeof(struct packet_ip) +sizeof(struct packet_eth));
 
         if(!res) continue;
 
-        printf("res : %d\n",res);
         eth = (struct packet_eth*)packet;
         packet += sizeof(struct packet_eth);
         ip = (struct packet_ip*)packet;
 
 
-        printf("\n\n\n");
 
-        printf("eht destnation: ");
+
+        printf("eht destination: ");
         for(int i=0;i<6;++i)
             printf("%02x ",eth->daddr[i]);
         printf("\n");
@@ -129,10 +129,11 @@ int main(int argc, char *argv[])
         switch(eth->type)
         {
         case 0x08:
-
+            //  printf("total len: %x\n",ip->ip_len);
+            //   data_len = ip->ip_len - (sizeof(struct packet_eth)+sizeof(struct packet_ip)+sizeof(struct packet_tcp));
             printf("dip : %s\n",inet_ntoa(ip->ip_dst));
             printf("sip : %s\n",inet_ntoa(ip->ip_src));
-            \
+
             if(ip->ip_p == 6)
             {
 
@@ -145,11 +146,11 @@ int main(int argc, char *argv[])
 
                 packet += sizeof(struct packet_tcp);
 
-                data_len = header.caplen - sizeof(struct packet_tcp) + sizeof(struct packet_ip) +sizeof(struct packet_eth);
-                printf("data size: %d\n",data_len);
 
-                for(int i=0;i<data_len;i++)
-                        printf("%02x ",packet[i]);
+                //    printf("data size: %x\n",data_len);
+
+                for(int i=0;i<30;i++)
+                    printf("%02x ",packet[i]);
                 printf("\n");
             }
 
@@ -157,6 +158,8 @@ int main(int argc, char *argv[])
 
 
         }
+
+        printf("\n\n\n");
 
 
     }
