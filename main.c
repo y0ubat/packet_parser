@@ -12,6 +12,19 @@ struct packet_eth
     u_int16_t type;
 };
 
+struct packet_tcp{
+  uint16_t src_port;
+  uint16_t dst_port;
+  uint32_t seq;
+  uint32_t ack;
+  uint8_t  data_offset;  // 4 bits
+  uint8_t  flags;
+  uint16_t window_size;
+  uint16_t checksum;
+  uint16_t urgent_p;
+};
+
+
 struct packet_ip
 {
 #if __BYTE_ORDER == __LITTLE_ENDIAN
@@ -36,27 +49,8 @@ struct packet_ip
     struct in_addr ip_src, ip_dst;  /* source and dest address */
 };
 
-struct packet_tcp
-{
-    u_short sport;
-    u_short dport;
-    u_int16_t sq_num;
-    u_int16_t ack_num;
-    u_short data_offset:4;
-    u_short reserved:3;
-    unsigned char fin:1;
-    unsigned char syn:1;
-    unsigned char rst:1;
-    unsigned char psh:1;
-    unsigned char ack:1;
-    unsigned char urg:1;
-    unsigned char ecn:1;
-    unsigned char cwr:1;
-    unsigned short window;
-    unsigned short checksum;
-    unsigned short urgent_pointer;
 
-};
+
 
 #pragma pack(pop)
 
@@ -71,10 +65,12 @@ int main(int argc, char *argv[])
     bpf_u_int32 mask;		/* Our netmask */
     bpf_u_int32 net;		/* Our IP */
     struct pcap_pkthdr header;	/* The header that pcap gives us */
-    const u_char *packet;		/* The actual packet */
+    struct packet_tcp *tcp_;
     struct packet_eth *eth;
     struct packet_ip *ip;
-    struct packet_tcp *tcp;
+    const u_char *packet;		/* The actual packet */
+
+
 
     /* Define the device */
     dev = pcap_lookupdev(errbuf);
@@ -106,8 +102,17 @@ int main(int argc, char *argv[])
     /* Grab a packet */
     while(1)
     {
-        pcap_next_ex(handle, &header,&packet);
+        int res;
+        res = pcap_next_ex(handle, &header,&packet);
+
+        if(!res) continue;
+
+        printf("res : %d\n",res);
         eth = (struct packet_eth*)packet;
+        packet += sizeof(struct packet_eth);
+        ip = (struct packet_ip*)packet;
+
+
         printf("\n\n\n");
 
         printf("eht destnation: ");
@@ -123,18 +128,21 @@ int main(int argc, char *argv[])
         switch(eth->type)
         {
         case 0x08:
-            packet += sizeof(struct packet_eth);
-            ip = (struct packet_ip*)packet;
+
             printf("dip : %s\n",inet_ntoa(ip->ip_dst));
             printf("sip : %s\n",inet_ntoa(ip->ip_src));
-
+            \
             if(ip->ip_p == 6)
             {
+
                 packet += sizeof(struct packet_ip);
-                tcp = (struct packet_tcp*)packet;
-                printf("aa\n");
-                //printf("dport : %d\n",tcp->dport);
-                //printf("sport : %d\n",tcp->sport);
+                tcp_ = (struct packet_tcp*)packet;
+
+
+
+                printf("dport : %d\n",ntohs(tcp_->dst_port));
+                printf("sport : %d\n",ntohs(tcp_->src_port));
+
             }
 
             break;
