@@ -103,6 +103,7 @@ int main(int argc, char *argv[])
     while(1)
     {
         int res;
+        int data_len;
         res = pcap_next_ex(handle, &header,&packet);
 
         if(!res) continue;
@@ -144,11 +145,12 @@ int main(int argc, char *argv[])
 
                 packet += sizeof(struct packet_tcp);
 
+                data_len = header.caplen - sizeof(struct packet_tcp) + sizeof(struct packet_ip) +sizeof(struct packet_eth);
+                printf("data size: %d\n",data_len);
 
-                for(int i=0; i<50;i++)
-                    printf("%02x ", packet[i]);
+                for(int i=0;i<data_len;i++)
+                        printf("%02x ",packet[i]);
                 printf("\n");
-
             }
 
             break;
