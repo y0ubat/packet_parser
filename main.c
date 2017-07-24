@@ -39,9 +39,6 @@ struct packet_ip
     struct in_addr ip_src, ip_dst;  /* source and dest address */
 };
 
-
-
-
 #pragma pack(pop)
 
 
@@ -49,8 +46,8 @@ int main(int argc, char *argv[])
 {
     pcap_t *handle;			/* Session handle */
     char *dev;			/* The device to sniff on */
-    char errbuf
-            [PCAP_ERRBUF_SIZE];	/* Error string */
+    char errbuf[PCAP_ERRBUF_SIZE];	/* Error string */
+    char buf[20];
     struct bpf_program fp;		/* The compiled filter */
     char filter_exp[] = "port 80";	/* The filter expression */
     bpf_u_int32 mask;		/* Our netmask */
@@ -71,29 +68,20 @@ int main(int argc, char *argv[])
         return(2);
     }
     /* Compile and apply thre filter */
-    if (pcap_compile(handle, &fp, filter_exp, 0, net) == -1) {
-        fprintf(stderr, "Couldn't parse filter %s: %s\n", filter_exp, pcap_geterr(handle));
-        return(2);
-    }
-    if (pcap_setfilter(handle, &fp) == -1) {
-        fprintf(stderr, "Couldn't install filter %s: %s\n", filter_exp, pcap_geterr(handle));
-        return(2);
-    }
+
+
     /* Grab a packet */
     while(1)
     {
         int res;
         res = pcap_next_ex(handle, &header,&packet);
         // data_len = header.len - (sizeof(struct packet_tcp) + sizeof(struct packet_ip) +sizeof(struct packet_eth));
-
+        printf("caplen : %s\n",header.caplen);
         if(!res) continue;
 
         eth = (struct packet_eth*)packet;
         packet += sizeof(struct packet_eth);
         ip = (struct packet_ip*)packet;
-
-
-
 
         printf("eht destination: ");
         for(int i=0;i<6;++i)
@@ -110,8 +98,10 @@ int main(int argc, char *argv[])
         case 0x08:
             //  printf("total len: %x\n",ip->ip_len);
             //   data_len = ip->ip_len - (sizeof(struct packet_eth)+sizeof(struct packet_ip)+sizeof(struct packet_tcp));
-            printf("dip : %s\n",inet_ntoa(ip->ip_dst));
-            printf("sip : %s\n",inet_ntoa(ip->ip_src));
+            inet_ntop(AF_INET,&ip->ip_dst,buf,sizeof(buf));
+            printf("dip : %s\n",buf);
+            inet_ntop(AF_INET,&ip->ip_src,buf,sizeof(buf));
+            printf("sip : %s\n",buf);
 
             if(ip->ip_p == 6)
             {
@@ -125,25 +115,14 @@ int main(int argc, char *argv[])
 
                 packet += sizeof(struct packet_tcp);
 
-
-                //    printf("data size: %x\n",data_len);
-
                 for(int i=0;i<30;i++)
                     printf("%02x ",packet[i]);
                 printf("\n");
             }
-
             break;
-
-
         }
-
         printf("\n\n\n");
-
-
     }
-
-
     pcap_close(handle);
     return(0);
 }
