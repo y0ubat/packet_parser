@@ -49,7 +49,6 @@ int main(int argc, char *argv[])
     char errbuf[PCAP_ERRBUF_SIZE];	/* Error string */
     char buf[20];
     struct bpf_program fp;		/* The compiled filter */
-    char filter_exp[] = "port 80";	/* The filter expression */
     bpf_u_int32 mask;		/* Our netmask */
     bpf_u_int32 net;		/* Our IP */
     struct pcap_pkthdr header;	/* The header that pcap gives us */
@@ -57,12 +56,13 @@ int main(int argc, char *argv[])
     struct packet_eth *eth;
     struct packet_ip *ip;
     const u_char *packet;		/* The actual packet */
+    int data_len = 0;
 
 
-    if(!argv[1])
-        printf("Using ./program network_interface\n");
+    //if(!argv[1])
+      //  printf("Using ./program network_interface\n");
 
-    handle = pcap_open_live(argv[1], BUFSIZ, 1, 3000, errbuf);
+    handle = pcap_open_live("ens33", BUFSIZ, 1, 3000, errbuf);
     if (handle == NULL) {
         fprintf(stderr, "Couldn't open device %s: %s\n", dev, errbuf);
         return(2);
@@ -75,8 +75,7 @@ int main(int argc, char *argv[])
     {
         int res;
         res = pcap_next_ex(handle, &header,&packet);
-        // data_len = header.len - (sizeof(struct packet_tcp) + sizeof(struct packet_ip) +sizeof(struct packet_eth));
-        printf("caplen : %s\n",header.caplen);
+
         if(!res) continue;
 
         eth = (struct packet_eth*)packet;
@@ -95,9 +94,7 @@ int main(int argc, char *argv[])
 
         switch(eth->type)
         {
-        case 0x08:
-            //  printf("total len: %x\n",ip->ip_len);
-            //   data_len = ip->ip_len - (sizeof(struct packet_eth)+sizeof(struct packet_ip)+sizeof(struct packet_tcp));
+        case 0x08:          
             inet_ntop(AF_INET,&ip->ip_dst,buf,sizeof(buf));
             printf("dip : %s\n",buf);
             inet_ntop(AF_INET,&ip->ip_src,buf,sizeof(buf));
@@ -105,7 +102,8 @@ int main(int argc, char *argv[])
 
             if(ip->ip_p == 6)
             {
-
+                data_len = ntohs(ip->ip_len)*4 - sizeof(struct packet_tcp) - sizeof(struct packet_ip);
+                printf("data_len : %d\n",data_len);
                 packet += sizeof(struct packet_ip);
                 tcp_ = (struct packet_tcp*)packet;
 
@@ -115,8 +113,8 @@ int main(int argc, char *argv[])
 
                 packet += sizeof(struct packet_tcp);
 
-                for(int i=0;i<30;i++)
-                    printf("%02x ",packet[i]);
+                for(int i=0;i<data_len;i++)
+                    printf("%02x",packet[i]);
                 printf("\n");
             }
             break;
