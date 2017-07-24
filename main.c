@@ -59,10 +59,10 @@ int main(int argc, char *argv[])
     int data_len = 0;
 
 
-    //if(!argv[1])
-      //  printf("Using ./program network_interface\n");
+    if(!argv[1])
+      printf("Using ./program network_interface\n");
 
-    handle = pcap_open_live("ens33", BUFSIZ, 1, 3000, errbuf);
+    handle = pcap_open_live(argv[1], BUFSIZ, 1, 3000, errbuf);
     if (handle == NULL) {
         fprintf(stderr, "Couldn't open device %s: %s\n", dev, errbuf);
         return(2);
@@ -82,40 +82,53 @@ int main(int argc, char *argv[])
         packet += sizeof(struct packet_eth);
         ip = (struct packet_ip*)packet;
 
-        printf("eht destination: ");
-        for(int i=0;i<6;++i)
-            printf("%02x ",eth->daddr[i]);
-        printf("\n");
-
-        printf("eht source: ");
-        for(int i=0;i<6;++i)
-            printf("%02x ",eth->saddr[i]);
-        printf("\n");
 
         switch(eth->type)
         {
-        case 0x08:          
-            inet_ntop(AF_INET,&ip->ip_dst,buf,sizeof(buf));
-            printf("dip : %s\n",buf);
-            inet_ntop(AF_INET,&ip->ip_src,buf,sizeof(buf));
-            printf("sip : %s\n",buf);
+        case 0x08:
+
 
             if(ip->ip_p == 6)
             {
                 data_len = ntohs(ip->ip_len)*4 - sizeof(struct packet_tcp) - sizeof(struct packet_ip);
-                printf("data_len : %d\n",data_len);
+
                 packet += sizeof(struct packet_ip);
                 tcp_ = (struct packet_tcp*)packet;
 
 
-                printf("dport : %d\n",ntohs(tcp_->dst_port));
-                printf("sport : %d\n",ntohs(tcp_->src_port));
+                if(ntohs(tcp_->dst_port == 80 || ntohs(tcp_->src_port) == 80))
+                {
+                    packet += sizeof(struct packet_tcp);
 
-                packet += sizeof(struct packet_tcp);
+                    printf("eht destination: ");
+                    for(int i=0;i<6;++i)
+                        printf("%02x ",eth->daddr[i]);
+                    printf("\n");
 
-                for(int i=0;i<data_len;i++)
-                    printf("%02x",packet[i]);
-                printf("\n");
+                    printf("eht source: ");
+                    for(int i=0;i<6;++i)
+                        printf("%02x ",eth->saddr[i]);
+                    printf("\n");
+
+                    inet_ntop(AF_INET,&ip->ip_dst,buf,sizeof(buf));
+                    printf("dip : %s\n",buf);
+                    inet_ntop(AF_INET,&ip->ip_src,buf,sizeof(buf));
+                    printf("sip : %s\n",buf);
+
+
+                    printf("dport : %d\n",ntohs(tcp_->dst_port));
+                    printf("sport : %d\n",ntohs(tcp_->src_port));
+                    printf("data_len : %d\n",data_len);
+                    for(int i=0;i<data_len;i++)
+                        printf("%c",packet[i]);
+                    printf("\n");
+
+
+
+                }else{
+
+                }
+
             }
             break;
         }
@@ -124,3 +137,4 @@ int main(int argc, char *argv[])
     pcap_close(handle);
     return(0);
 }
+
